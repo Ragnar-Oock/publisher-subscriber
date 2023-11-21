@@ -1,12 +1,13 @@
 import SubscriptionInterface from "../interfaces/subscription.interface";
-import PublisherInterface from "../interfaces/publisher.interface";
+import PublisherInterface, { NotificationCollection } from "../interfaces/publisher.interface";
 import SubscriptionManager from "./subscription-manager.model";
 import {findSubscriptionByRoleAndComponentId, ROLE} from "../helper/subscription-manager.helper";
+import { NotificationNames } from '../interfaces/subscription-manager.interface';
 
 /**
  * Define instance that can publish notification
  */
-class Publisher extends SubscriptionManager implements PublisherInterface {
+class Publisher<N extends NotificationCollection> extends SubscriptionManager<Exclude<keyof N, number | symbol>> implements PublisherInterface<N> {
     private shouldIStopPublicationOnException: boolean = false;
 
     /**
@@ -26,7 +27,7 @@ class Publisher extends SubscriptionManager implements PublisherInterface {
     /**
      * @inheritDoc
      */
-    public publish(notification: string, data?: any): void {
+    public publish<notificationName extends NotificationNames<N>>(notification: notificationName, data: N[notificationName]): void {
         const subscriptions = this.notificationsCollection[notification];
 
         if (Array.isArray(subscriptions)) {
@@ -59,7 +60,7 @@ class Publisher extends SubscriptionManager implements PublisherInterface {
     /**
      * @inheritDoc
      */
-    public findSubscriptionsByNotificationAndSubscriberId(notification: string, subscriberId: string): SubscriptionInterface[] {
+    public findSubscriptionsByNotificationAndSubscriberId(notification: NotificationNames<N>, subscriberId: string): SubscriptionInterface[] {
         return this.findSubscriptionsByNotification(notification).filter(subscription => {
             return subscription.subscriber_id === subscriberId;
         })
@@ -68,7 +69,7 @@ class Publisher extends SubscriptionManager implements PublisherInterface {
     /**
      * @inheritDoc
      */
-    public addSubscriber(notification: string, subscription: SubscriptionInterface): void {
+    public addSubscriber(notification: NotificationNames<N>, subscription: SubscriptionInterface): void {
         this.addSubscription(notification, subscription);
     }
 

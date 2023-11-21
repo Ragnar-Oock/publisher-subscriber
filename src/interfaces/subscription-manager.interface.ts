@@ -1,7 +1,10 @@
 import IdentifiableInterface from "./identifiable.interface";
 import SubscriptionInterface from "./subscription.interface";
+import { NotificationCollection } from './publisher.interface';
 
-export default interface SubscriptionManagerInterface extends IdentifiableInterface {
+export type NotificationNames<notifications extends NotificationCollection> = Exclude<keyof notifications, number | symbol>;
+
+export default interface SubscriptionManagerInterface<notifications extends keyof NotificationCollection> extends IdentifiableInterface {
     /**
      * Check if an instance has a subscription
      * @param subscriptionId - subscription id
@@ -23,14 +26,14 @@ export default interface SubscriptionManagerInterface extends IdentifiableInterf
      * Find all subscription bound to the following notification
      * @param notification
      */
-    findSubscriptionsByNotification(notification: string): SubscriptionInterface[];
+    findSubscriptionsByNotification(notification: notifications): SubscriptionInterface[];
 
     /**
      * Find a subscription by id
      * @param subscriptionId
      * @return {SubscriptionInterface | null } - the subscription or null if no subscription was found
      */
-    findSubscriptionById(subscriptionId: string): SubscriptionInterface | null;
+    findSubscriptionById(subscriptionId: notifications): SubscriptionInterface | null;
 
     /**
      * Remove subscription from subscription list.
@@ -40,5 +43,5 @@ export default interface SubscriptionManagerInterface extends IdentifiableInterf
      * @throws SubscriptionNotFoundException - when subscription was not found
      * @internal
      */
-    clearSubscription(subscriptionId: string): void;
+    clearSubscription(subscriptionId: notifications): void;
 }

@@ -1,12 +1,12 @@
 import SubscriptionInterface from "./subscription.interface";
-import PublisherInterface from "./publisher.interface";
+import PublisherInterface, { NotificationCollection } from "./publisher.interface";
 import NotificationRecord from "./notification-record.interface";
-import SubscriptionManagerInterface from "./subscription-manager.interface";
+import SubscriptionManagerInterface, { NotificationNames } from "./subscription-manager.interface";
 
 /**
  * Define how any subscriber should behave
  */
-interface SubscriberInterface extends SubscriptionManagerInterface {
+interface SubscriberInterface<notifications extends NotificationCollection> extends SubscriptionManagerInterface<NotificationNames<notifications>> {
     /**
      * Add a subscription between subscriber and publisher
      * @param publisher - publisher to subscribe
@@ -15,10 +15,10 @@ interface SubscriberInterface extends SubscriptionManagerInterface {
      * @param priority
      * @throws InvalidArgumentException - When priority is not a valid number (like NaN)
      */
-    subscribe(
-        publisher: PublisherInterface,
-        notification: string,
-        handler: (payload: any) => void,
+    subscribe<notification extends NotificationNames<notifications>>(
+        publisher: PublisherInterface<notifications>,
+        notification: notification,
+        handler: (payload: notifications[notification]) => void,
         priority?: number
     ): SubscriptionInterface;
 
@@ -38,7 +38,7 @@ interface SubscriberInterface extends SubscriptionManagerInterface {
      * Remove all subscription bind to the following notification name
      * @param notification - notification name
      */
-    unsubscribeFromNotification(notification: string): void;
+    unsubscribeFromNotification(notification: NotificationNames<notifications>): void;
 
     /**
      * Find all subscriptions from a publisher
@@ -57,7 +57,7 @@ interface SubscriberInterface extends SubscriptionManagerInterface {
      * @param notification - notification name
      * @param subscription
      */
-    addSubscription(notification: string, subscription: SubscriptionInterface): void;
+    addSubscription(notification: NotificationNames<notifications>, subscription: SubscriptionInterface): void;
 
     /**
      * Remove subscription from subscriber's subscription list.

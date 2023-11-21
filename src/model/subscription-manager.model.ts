@@ -1,14 +1,15 @@
 import SubscriptionManagerInterface from "../interfaces/subscription-manager.interface";
 import SubscriptionInterface from "../interfaces/subscription.interface";
 import {SubscriptionAlreadyExistsException, SubscriptionNotFoundException} from "../exception/index";
+import { NotificationCollection } from '../interfaces/publisher.interface';
 
 
 /**
  * Define instance that can manage subscription collection
  */
-export default class SubscriptionManager implements SubscriptionManagerInterface {
-    private subscriptionsList: Record<string, string> = {};
-    protected notificationsCollection: Record<string, Array<SubscriptionInterface>> = {};
+export default class SubscriptionManager<N extends keyof NotificationCollection> implements SubscriptionManagerInterface<N> {
+    private subscriptionsList: Record<string, N> = {};
+    protected notificationsCollection: Partial<Record<N, Array<SubscriptionInterface>>> = {};
     protected nbSubscriptionRecorded: number = 0;
     private readonly id: string;
 
@@ -42,12 +43,12 @@ export default class SubscriptionManager implements SubscriptionManagerInterface
      * @param subscriptionId - subscription id
      * @param notification - notification name
      */
-    public recordSubscription(subscriptionId: string, notification: string): void {
+    private recordSubscription(subscriptionId: string, notification: N): void {
         this.subscriptionsList[subscriptionId] = notification;
     }
 
 
-    private findSubscriptionIndexById(subscriptionId: string): { index: number, notification: string } {
+    private findSubscriptionIndexById(subscriptionId: string): { index: number, notification: N } {
         const notificationName = this.subscriptionsList[subscriptionId];
         const subscriptionIndex = {
             index: -1,
@@ -78,24 +79,20 @@ export default class SubscriptionManager implements SubscriptionManagerInterface
     public findSubscriptionById(subscriptionId: string): SubscriptionInterface | null {
         const subscriptionIndex = this.findSubscriptionIndexById(subscriptionId);
 
-        if (subscriptionIndex.index < 0) {
-            return null;
-        } else {
-            return this.notificationsCollection[subscriptionIndex.notification][subscriptionIndex.index];
-        }
+        return this.notificationsCollection[subscriptionIndex.notification]?.[subscriptionIndex.index] ?? null;
     }
 
     /**
      * @inheritDoc
      */
-    public findSubscriptionsByNotification(notification: string): Array<SubscriptionInterface> {
-        return this.notificationsCollection[notification] || [];
+    public findSubscriptionsByNotification(notification: N): Array<SubscriptionInterface> {
+        return this.notificationsCollection[notification] ?? [];
     }
 
     /**
      * Remove subscription from subscription list.
      * Cause subscription might involve memory leak you shouldn't invoke this method manually.
-     * Let sub-class implements properly its own logic and prevent memory leak at this time.
+     * Let subclass implements properly its own logic and prevent memory leak at this time.
      * @param subscriptionId
      * @throws SubscriptionNotFoundException - when subscription was not found
      * @internal
@@ -103,28 +100,28 @@ export default class SubscriptionManager implements SubscriptionManagerInterface
     public clearSubscription(subscriptionId: string): void {
         const subscriptionIndex = this.findSubscriptionIndexById(subscriptionId);
 
-        if (subscriptionIndex.index < 0) {
+        const notifications = this.notificationsCollection[subscriptionIndex.notification];
+        if (typeof notifications === 'undefined') {
             throw new SubscriptionNotFoundException(subscriptionId, this.getId());
         } else {
-            const notifications = this.notificationsCollection[subscriptionIndex.notification];
             const removedSubscription: SubscriptionInterface = notifications.splice(
                 subscriptionIndex.index,
                 1
             )[0];
 
-            // // handler may contains some references to existing objects.
-            // // by deleting reference to this function, all reference into function will be destroyed
-            // // it could prevent some memory leaks
+            // handler may contain some references to existing objects.
+            // by deleting reference to this function, all reference into function will be destroyed
+            // it could prevent some memory leaks
             if (typeof removedSubscription.handler === 'function') {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
+                // @ts-expect-error
                 delete removedSubscription.handler;
             }
 
             delete this.subscriptionsList[subscriptionId];
             this.nbSubscriptionRecorded--;
 
-            if (this.notificationsCollection[subscriptionIndex.notification].length === 0) {
+            if (notifications.length === 0) {
                 delete this.notificationsCollection[subscriptionIndex.notification];
             }
         }
@@ -136,19 +133,18 @@ export default class SubscriptionManager implements SubscriptionManagerInterface
      * @param subscription
      * @throws SubscriptionAlreadyExistsException - when a subscription with same id was already added
      */
-    public addSubscription(notification: string, subscription: SubscriptionInterface): void {
-        if (Array.isArray(this.notificationsCollection[notification]) !== true) {
-            this.notificationsCollection[notification] = [];
-        }
+    protected addSubscription(notification: N, subscription: SubscriptionInterface): void {
+        const notifications = this.notificationsCollection[notification] ?? [];
 
         if (!this.hasSubscription(subscription.id)) {
-            this.notificationsCollection[notification].push(subscription);
-            this.notificationsCollection[notification].sort((a, b) => {
+            notifications.push(subscription);
+            notifications.sort((a, b) => {
                 return b.priority - a.priority;
             })
 
             this.recordSubscription(subscription.id, notification);
             this.nbSubscriptionRecorded++;
+            this.notificationsCollection[notification] = notifications;
         } else {
             throw new SubscriptionAlreadyExistsException(subscription.id, this.getId());
         }
@@ -172,12 +168,9 @@ export default class SubscriptionManager implements SubscriptionManagerInterface
      * Clear all subscriptions properly
      */
     public destroy(): void {
-        Object.values(this.notificationsCollection).forEach(subscriptionsType => {
-            [ ...subscriptionsType].forEach(
-                (subscription: SubscriptionInterface) => {
-                    subscription.unsubscribe();
-                }
-            )
-        });
+        (Object.values(this.notificationsCollection) as SubscriptionInterface[][])
+            .forEach(subscriptionsType =>
+                [ ...subscriptionsType].forEach(subscription => subscription.unsubscribe())
+            );
     }
 }

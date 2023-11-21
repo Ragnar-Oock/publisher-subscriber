@@ -1,16 +1,21 @@
 import SubscriptionInterface from "./subscription.interface";
-import SubscriptionManagerInterface from "./subscription-manager.interface";
+import SubscriptionManagerInterface, { NotificationNames } from "./subscription-manager.interface";
+
+
+export type NotificationCollection = {
+    [name in string]:  Record<string, any> | never
+}
 
 /**
  * Behavior expected by an instance who's publish some notification to subscribers
  */
-interface PublisherInterface extends SubscriptionManagerInterface {
+interface PublisherInterface<N extends NotificationCollection> extends SubscriptionManagerInterface<NotificationNames<N>> {
     /**
      * Publish a notification to subscribers
      * @param notification - notification name
      * @param data - additional data to send on publish
      */
-    publish(notification: string, data?: any): void;
+    publish<notificationName extends NotificationNames<N>>(notification: notificationName, data: N[notificationName]): void;
 
 
     /**
@@ -18,7 +23,7 @@ interface PublisherInterface extends SubscriptionManagerInterface {
      * @param notification - notification name whose trigger handler
      * @param subscription - subscription including the handler to trigger
      */
-    addSubscriber(notification: string, subscription: SubscriptionInterface): void;
+    addSubscriber(notification: NotificationNames<N>, subscription: SubscriptionInterface): void;
 
     /**
      * Remove all subscriptions between publisher and the subscriber with id `subscription_id`
@@ -40,7 +45,7 @@ interface PublisherInterface extends SubscriptionManagerInterface {
      * @param subscriberId  - id of a potential subscriber
      * @return SubscriptionInterface[] - all subscriptions found
      */
-    findSubscriptionsByNotificationAndSubscriberId(notification: string, subscriberId: string): SubscriptionInterface[];
+    findSubscriptionsByNotificationAndSubscriberId(notification: NotificationNames<N>, subscriberId: string): SubscriptionInterface[];
 
     /**
      * Update the behavior of publisher in order to stop publication workflow if one exception is thrown by a subscriber
