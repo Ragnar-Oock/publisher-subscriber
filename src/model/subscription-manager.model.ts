@@ -7,9 +7,9 @@ import { NotificationCollection } from '../interfaces/publisher.interface';
 /**
  * Define instance that can manage subscription collection
  */
-export default class SubscriptionManager<N extends keyof NotificationCollection> implements SubscriptionManagerInterface<N> {
-    private subscriptionsList: Record<string, N> = {};
-    protected notificationsCollection: Partial<Record<N, Array<SubscriptionInterface>>> = {};
+export default class SubscriptionManager<notifications extends keyof NotificationCollection> implements SubscriptionManagerInterface<notifications> {
+    private subscriptionsList: Record<string, notifications> = {};
+    protected notificationsCollection: Partial<Record<notifications, Array<SubscriptionInterface>>> = {};
     protected nbSubscriptionRecorded: number = 0;
     private readonly id: string;
 
@@ -43,12 +43,12 @@ export default class SubscriptionManager<N extends keyof NotificationCollection>
      * @param subscriptionId - subscription id
      * @param notification - notification name
      */
-    private recordSubscription(subscriptionId: string, notification: N): void {
+    private recordSubscription(subscriptionId: string, notification: notifications): void {
         this.subscriptionsList[subscriptionId] = notification;
     }
 
 
-    private findSubscriptionIndexById(subscriptionId: string): { index: number, notification: N } {
+    private findSubscriptionIndexById(subscriptionId: string): { index: number, notification: notifications } {
         const notificationName = this.subscriptionsList[subscriptionId];
         const subscriptionIndex = {
             index: -1,
@@ -85,7 +85,7 @@ export default class SubscriptionManager<N extends keyof NotificationCollection>
     /**
      * @inheritDoc
      */
-    public findSubscriptionsByNotification(notification: N): Array<SubscriptionInterface> {
+    public findSubscriptionsByNotification(notification: notifications): Array<SubscriptionInterface> {
         return this.notificationsCollection[notification] ?? [];
     }
 
@@ -133,7 +133,7 @@ export default class SubscriptionManager<N extends keyof NotificationCollection>
      * @param subscription
      * @throws SubscriptionAlreadyExistsException - when a subscription with same id was already added
      */
-    protected addSubscription(notification: N, subscription: SubscriptionInterface): void {
+    protected addSubscription(notification: notifications, subscription: SubscriptionInterface): void {
         const notifications = this.notificationsCollection[notification] ?? [];
 
         if (!this.hasSubscription(subscription.id)) {

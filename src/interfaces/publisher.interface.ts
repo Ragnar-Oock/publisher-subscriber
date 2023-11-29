@@ -9,13 +9,13 @@ export type NotificationCollection = {
 /**
  * Behavior expected by an instance who's publish some notification to subscribers
  */
-interface PublisherInterface<N extends NotificationCollection> extends SubscriptionManagerInterface<NotificationNames<N>> {
+interface PublisherInterface<notifications extends NotificationCollection> extends SubscriptionManagerInterface<NotificationNames<notifications>> {
     /**
      * Publish a notification to subscribers
      * @param notification - notification name
      * @param data - additional data to send on publish
      */
-    publish<notificationName extends NotificationNames<N>>(notification: notificationName, data: N[notificationName]): void;
+    publish<event extends NotificationNames<notifications>>(notification: event, data: notifications[event]): void;
 
 
     /**
@@ -23,7 +23,7 @@ interface PublisherInterface<N extends NotificationCollection> extends Subscript
      * @param notification - notification name whose trigger handler
      * @param subscription - subscription including the handler to trigger
      */
-    addSubscriber(notification: NotificationNames<N>, subscription: SubscriptionInterface): void;
+    addSubscriber(notification: NotificationNames<notifications>, subscription: SubscriptionInterface): void;
 
     /**
      * Remove all subscriptions between publisher and the subscriber with id `subscription_id`
@@ -45,7 +45,7 @@ interface PublisherInterface<N extends NotificationCollection> extends Subscript
      * @param subscriberId  - id of a potential subscriber
      * @return SubscriptionInterface[] - all subscriptions found
      */
-    findSubscriptionsByNotificationAndSubscriberId(notification: NotificationNames<N>, subscriberId: string): SubscriptionInterface[];
+    findSubscriptionsByNotificationAndSubscriberId(notification: NotificationNames<notifications>, subscriberId: string): SubscriptionInterface[];
 
     /**
      * Update the behavior of publisher in order to stop publication workflow if one exception is thrown by a subscriber

@@ -7,7 +7,7 @@ import { NotificationNames } from '../interfaces/subscription-manager.interface'
 /**
  * Define instance that can publish notification
  */
-class Publisher<N extends NotificationCollection> extends SubscriptionManager<Exclude<keyof N, number | symbol>> implements PublisherInterface<N> {
+class Publisher<notifications extends NotificationCollection> extends SubscriptionManager<Exclude<keyof notifications, number | symbol>> implements PublisherInterface<notifications> {
     private shouldIStopPublicationOnException: boolean = false;
 
     /**
@@ -27,7 +27,7 @@ class Publisher<N extends NotificationCollection> extends SubscriptionManager<Ex
     /**
      * @inheritDoc
      */
-    public publish<notificationName extends NotificationNames<N>>(notification: notificationName, data: N[notificationName]): void {
+    public publish<event extends NotificationNames<notifications>>(notification: event, data: notifications[event]): void {
         const subscriptions = this.notificationsCollection[notification];
 
         if (Array.isArray(subscriptions)) {
@@ -60,7 +60,7 @@ class Publisher<N extends NotificationCollection> extends SubscriptionManager<Ex
     /**
      * @inheritDoc
      */
-    public findSubscriptionsByNotificationAndSubscriberId(notification: NotificationNames<N>, subscriberId: string): SubscriptionInterface[] {
+    public findSubscriptionsByNotificationAndSubscriberId(notification: NotificationNames<notifications>, subscriberId: string): SubscriptionInterface[] {
         return this.findSubscriptionsByNotification(notification).filter(subscription => {
             return subscription.subscriber_id === subscriberId;
         })
@@ -69,7 +69,7 @@ class Publisher<N extends NotificationCollection> extends SubscriptionManager<Ex
     /**
      * @inheritDoc
      */
-    public addSubscriber(notification: NotificationNames<N>, subscription: SubscriptionInterface): void {
+    public addSubscriber(notification: NotificationNames<notifications>, subscription: SubscriptionInterface): void {
         this.addSubscription(notification, subscription);
     }
 
